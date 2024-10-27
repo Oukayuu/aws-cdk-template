@@ -1,35 +1,35 @@
 // 予約登録
-POST https://vrlssjrj4i.execute-api.us-east-1.amazonaws.com/dev/reservations HTTP/1.1
+POST https://1fu7u3unzc.execute-api.us-east-1.amazonaws.com/dev/reservations HTTP/1.1
 content-type: application/json
 
 {
-    "executeTimestamp": "2024-10-21T14:00:00Z",
+    "executeTimestamp": "2024-10-23T14:00:00Z",
 }
 
 ###
 
 // 予約一覧照会
-GET https://vrlssjrj4i.execute-api.us-east-1.amazonaws.com/dev/reservations HTTP/1.1
+GET https://1fu7u3unzc.execute-api.us-east-1.amazonaws.com/dev/reservations HTTP/1.1
 content-type: application/json
 
 ###
 
 // 予約個別照会
-GET https://vrlssjrj4i.execute-api.us-east-1.amazonaws.com/dev/reservations/79f98d43-0135-4f7f-922d-171c25065e89 HTTP/1.1
+GET https://1fu7u3unzc.execute-api.us-east-1.amazonaws.com/dev/reservations/50828679-d871-42d3-8c26-ef3e3380749b HTTP/1.1
 content-type: application/json
 
 ###
 
 // 予約個別更新
-PUT https://vrlssjrj4i.execute-api.us-east-1.amazonaws.com/dev/reservations/79f98d43-0135-4f7f-922d-171c25065e89 HTTP/1.1
+PUT https://1fu7u3unzc.execute-api.us-east-1.amazonaws.com/dev/reservations/50828679-d871-42d3-8c26-ef3e3380749b HTTP/1.1
 content-type: application/json
 
 {
-    "executeTimestamp": "2024-10-21T15:00:00Z",
+    "executeTimestamp": "2024-10-25T15:00:00Z",
 }
 
 ###
 
 // 予約削除
-DELETE https://vrlssjrj4i.execute-api.us-east-1.amazonaws.com/dev/reservations/79f98d43-0135-4f7f-922d-171c25065e89 HTTP/1.1
+DELETE https://1fu7u3unzc.execute-api.us-east-1.amazonaws.com/dev/reservations/50828679-d871-42d3-8c26-ef3e3380749b HTTP/1.1
 content-type: application/json
