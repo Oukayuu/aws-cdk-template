@@ -59,7 +59,7 @@ export class ApiGatewayToDynamodbCdkStack extends cdk.Stack {
     // DynamoDBへのアクセス権限をIAMロールに付与
     table.grantReadWriteData(apiGatewayRole);
 
-    // POSTメソッドの追加
+    // 登録のPOSTメソッドの定義
     const postIntegration = new apigateway.AwsIntegration({
       service: 'dynamodb',
       action: 'PutItem',
@@ -96,6 +96,7 @@ export class ApiGatewayToDynamodbCdkStack extends cdk.Stack {
       },
     });
 
+    // 定義したPOSTメソッドをAPI Gatewayに追加
     resource.addMethod('POST', postIntegration, {
       methodResponses: [
         {
@@ -113,6 +114,7 @@ export class ApiGatewayToDynamodbCdkStack extends cdk.Stack {
       ],
     });
 
+    // 個別照会のGETメソッドの定義
     const getIntegration = new apigateway.AwsIntegration({
       service: 'dynamodb',
       action: 'GetItem',
@@ -150,6 +152,7 @@ export class ApiGatewayToDynamodbCdkStack extends cdk.Stack {
       },
     });
 
+    // 定義したGETメソッドをAPI Gatewayのサブリソースに追加 
     subResource.addMethod('GET', getIntegration, {
       methodResponses: [
         {
@@ -167,7 +170,7 @@ export class ApiGatewayToDynamodbCdkStack extends cdk.Stack {
       ],
     });
 
-
+    // 一覧取得のGETメソッドの定義
     const scanIntegration = new apigateway.AwsIntegration({
       service: 'dynamodb',
       action: 'Scan',
@@ -206,6 +209,7 @@ export class ApiGatewayToDynamodbCdkStack extends cdk.Stack {
       },
     });
 
+    // 定義したGETメソッドをAPI Gatewayのリソースに追加
     resource.addMethod('GET', scanIntegration, {
       methodResponses: [
         {
@@ -223,7 +227,7 @@ export class ApiGatewayToDynamodbCdkStack extends cdk.Stack {
       ],
     });
 
-    // PUTメソッドの追加
+    // 更新PUTメソッドの定義
     const updateIntegration = new apigateway.AwsIntegration({
       service: 'dynamodb',
       action: 'UpdateItem',
@@ -263,6 +267,7 @@ export class ApiGatewayToDynamodbCdkStack extends cdk.Stack {
       },
     });
     
+    // 定義したPUTメソッドをAPI Gatewayのサブリソースに追加
     subResource.addMethod('PUT', updateIntegration, {
       methodResponses: [
         {
@@ -280,7 +285,7 @@ export class ApiGatewayToDynamodbCdkStack extends cdk.Stack {
       ],
     });
 
-    // DELETEメソッドの追加
+    // DELETEメソッドの定義
     const deleteIntegration = new apigateway.AwsIntegration({
       service: 'dynamodb',
       action: 'DeleteItem',
@@ -314,6 +319,7 @@ export class ApiGatewayToDynamodbCdkStack extends cdk.Stack {
       },
     });
 
+    // 定義したDELETEメソッドをAPI Gatewayのサブリソースに追加
     subResource.addMethod('DELETE', deleteIntegration, {
       methodResponses: [
         {
