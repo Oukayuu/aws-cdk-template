@@ -4,6 +4,7 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as lambdaNode from 'aws-cdk-lib/aws-lambda-nodejs';
+import * as iam from 'aws-cdk-lib/aws-iam';
 
 // 本スタック使用するinterfaceを定義
 export interface DynamodbStreamLambdaCdkStackProps extends cdk.StackProps {
@@ -36,6 +37,17 @@ export class DynamodbStreamLambdaCdkStack extends cdk.Stack {
       handler: 'handler',
       entry: 'lambda/index.ts', // ソースコードのエントリーポイントを指定
     });
+
+    // EventBridgeへのアクセス権限をLambda関数に付与
+    myFunction.addToRolePolicy(new iam.PolicyStatement({
+      actions: [
+        'scheduler:CreateSchedule',
+        'scheduler:DeleteSchedule',
+        'scheduler:UpdateSchedule',
+        'scheduler:ListSchedules'
+      ],
+      resources: ['*'], // 必要に応じてリソースを絞り込む
+    }));
 
     // DynamoDBストリームをトリガーにしてLambdaを呼び出す
     myFunction.addEventSource(new lambdaEventSources.DynamoEventSource(table, {
