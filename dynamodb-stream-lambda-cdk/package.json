@@ -23,6 +23,7 @@
     "typescript": "~5.3.3"
   },
   "dependencies": {
+    "@aws-sdk/client-scheduler": "^3.693.0",
     "aws-cdk-lib": "^2.166.0",
     "aws-sdk": "^2.1692.0",
     "constructs": "^10.4.2",
