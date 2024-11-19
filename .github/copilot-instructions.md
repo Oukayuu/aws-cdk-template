@@ -1,1 +1,94 @@
-# GitHub Copilot Custom Instructions ## General Guidelines- The comments in the file should be in Japanese.- Follow Clean Architecture and Domain-Driven Design principles.- Ensure the code is optimized for performance and efficiency.- Include Typedoc comments for all public classes, methods, and interfaces. ## Naming Conventions- **Interfaces**: Start with `I` and use PascalCase. Example: `IUserService`- **Types**: End with `Type` and use PascalCase. Example: `UserType`- **Classes**: Use PascalCase. Example: `UserService`- **Enums**: Use PascalCase. Example: `UserStatus`- **Private Methods and Properties**: Start with `_` and use camelCase. Example: `_calculateTotal`, `_userRepository`- **Variables**: Use camelCase. Example: `userName`- **Methods**: Use camelCase. Example: `fetchUserData`- **File Names**: Use kebab-case. Example: `user-service.ts` ## TypeScript Specifics- Use `TypeScript` for all AWS Lambda implementations.- Ensure compatibility with Node.js Version 20.- Use AWS SDK Version 3.- Leverage AWS CDK Version 2 for Infrastructure as Code (IaC).- Use Jest for testing TypeScript code. ## Example ```typescript /** _ ユーザーサービスのインターフェース_/ interface IUserService { /** _ ユーザーを取得する_ @param id ユーザーの ID _ @returns ユーザーのデータ_/ getUser(id: string): Promise<UserType>; } /** _ ユーザーのタイプ定義_/ type UserType = { id: string; name: string; email: string; }; /** _ ユーザーサービスのクラス_ @implements IUserService \*/ class UserService implements IUserService {constructor(private readonly \_userRepository: IUserRepository) {} /** _ ユーザーを ID で取得する _ @param id ユーザーの ID _ @returns ユーザーのデータ _/ public async getUser(id: string): Promise<UserType> { return this.\_userRepository.findById(id); } } /** _ ユーザーリポジトリのインターフェース _/ interface IUserRepository { /** _ ID でユーザーを検索する _ @param id ユーザーの ID _ @returns ユーザーのデータ _/ findById(id: string): Promise<UserType>; } /** _ ユーザーリポジトリのクラス _ @implements IUserRepository _/ class UserRepository implements IUserRepository { /\*\* _ ID でユーザーを検索する _ @param id ユーザーの ID _ @returns ユーザーのデータ \*/ public async findById(id: string): Promise<UserType> { // データソースからユーザーデータを取得する実装 const userData = await someDataSource.fetchUser(id); // ローカル変数の例 return userData; } }
+# GitHub Copilot Custom Instructions 
+
+## General Guidelines
+- ファイル内のコメントは日本語で記述すること。
+- クリーンアーキテクチャとドメイン駆動設計の原則に従うこと。
+- コードがパフォーマンスと効率性を最適化するようにすること。
+- すべての公開クラス、メソッド、およびインターフェースにTypedocコメントを含めること。
+
+## Naming Conventions
+- **Interfaces**: `I`で始まり、PascalCaseを使用する。例: `IUserService`
+- **Types**: `Type`で終わり、PascalCaseを使用する。例: `UserType`
+- **Classes**: PascalCaseを使用する。例: `UserService`
+- **Enums**: PascalCaseを使用する。例: `UserStatus`
+- **Private Methods and Properties**: `_`で始まり、camelCaseを使用する。例: `_calculateTotal`, `_userRepository`
+- **Variables**: camelCaseを使用する。例: `userName`
+- **Methods**: camelCaseを使用する。例: `fetchUserData`
+- **File Names**: kebab-caseを使用する。例: `user-service.ts`
+
+## TypeScript Specifics
+- すべてのAWS Lambda実装に`TypeScript`を使用すること。
+- Node.jsバージョン20との互換性を確保すること。
+- AWS SDKバージョン3を使用すること。
+- インフラストラクチャコード（IaC）にはAWS CDKバージョン2を活用すること。
+- TypeScriptコードのテストにはJestを使用すること。
+
+## Example
+```typescript
+/** 
+ * ユーザーサービスのインターフェース
+ */
+interface IUserService {
+  /** 
+   * ユーザーを取得する
+   * @param id ユーザーのID
+   * @returns ユーザーのデータ
+   */
+  getUser(id: string): Promise<UserType>;
+}
+
+/** 
+ * ユーザーのタイプ定義
+ */
+type UserType = { 
+  id: string; 
+  name: string; 
+  email: string; 
+};
+
+/** 
+ * ユーザーサービスのクラス
+ * @implements IUserService
+ */
+class UserService implements IUserService {
+  constructor(private readonly _userRepository: IUserRepository) {}
+
+  /** 
+   * ユーザーをIDで取得する
+   * @param id ユーザーのID
+   * @returns ユーザーのデータ
+   */
+  public async getUser(id: string): Promise<UserType> {
+    return this._userRepository.findById(id);
+  }
+}
+
+/** 
+ * ユーザーリポジトリのインターフェース
+ */
+interface IUserRepository {
+  /** 
+   * IDでユーザーを検索する
+   * @param id ユーザーのID
+   * @returns ユーザーのデータ
+   */
+  findById(id: string): Promise<UserType>;
+}
+
+/** 
+ * ユーザーリポジトリのクラス
+ * @implements IUserRepository
+ */
+class UserRepository implements IUserRepository {
+  /** 
+   * IDでユーザーを検索する
+   * @param id ユーザーのID
+   * @returns ユーザーのデータ
+   */
+  public async findById(id: string): Promise<UserType> {
+    // データソースからユーザーデータを取得する実装
+    const userData = await someDataSource.fetchUser(id);
+    // ローカル変数の例
+    return userData;
+  }
+}

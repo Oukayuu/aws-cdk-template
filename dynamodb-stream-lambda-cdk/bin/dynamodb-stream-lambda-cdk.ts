@@ -25,7 +25,7 @@ new DynamodbStreamLambdaCdkStack(app, 'DynamodbStreamLambdaCdkStack', {
     functionName: 'scheduler-controller-function', // 関数名、デフォルトは `SchedulerController`
     runtime: lambda.Runtime.NODEJS_20_X,
     handler: 'handler',
-    entry: 'lambda/scheduler-controller/index.ts', // ソースコードのエントリーポイントを指定
+    entry: 'lambda/reservation-controller/index.ts', // ソースコードのエントリーポイントを指定
   },
   // スタック名を指定
   reservationStackName: {
