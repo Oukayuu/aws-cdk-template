@@ -1,8 +1,8 @@
 {
-  "name": "dynamodb-stream-lambda-cdk",
+  "name": "dynamodb-stream-lambda-scheduler-cdk",
   "version": "0.1.0",
   "bin": {
-    "dynamodb-stream-lambda-cdk": "bin/dynamodb-stream-lambda-cdk.js"
+    "dynamodb-stream-lambda-scheduler-cdk": "bin/dynamodb-stream-lambda-scheduler-cdk.js"
   },
   "scripts": {
     "build": "tsc",

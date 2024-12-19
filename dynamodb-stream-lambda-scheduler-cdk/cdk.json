@@ -1,5 +1,5 @@
 {
-  "app": "npx ts-node --prefer-ts-exts bin/dynamodb-stream-lambda-cdk.ts",
+  "app": "npx ts-node --prefer-ts-exts bin/dynamodb-stream-lambda-scheduler-cdk.ts",
   "watch": {
     "include": [
       "**"
