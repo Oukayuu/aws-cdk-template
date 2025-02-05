@@ -1,251 +1,167 @@
-import { Stack, StackProps } from "aws-cdk-lib";
+import { StackProps } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { ApiGatewayDynamoDBConstruct } from "./apigateway-dynamodb-construct";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
+import * as cdk from "aws-cdk-lib";
 
-export class ApigatewayDynamodbCdkStack extends Stack {
+/**
+ * ApiGatewayDynamodbCdkStackクラス
+ */
+export class ApigatewayDynamodbCdkStack extends cdk.Stack {
+  /**
+   * コンストラクタ
+   * @param scope コンストラクトのスコープ
+   * @param id コンストラクトのID
+   * @param props スタックのプロパティ
+   */
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    new ApiGatewayDynamoDBConstruct(this, "ApiGatewayDynamoDB", {
-      dynamoTableProps: {
-        tableName: "reservation-table", // テーブル名、デフォルトは `Reservations`
-        partitionKey: {
-          name: "reservationId", // パーティションキー名、デフォルトは `reservationId`
-          type: dynamodb.AttributeType.STRING, // パーティションキーの型、デフォルトは `STRING`
+    // dynamodbとapigatewayの設定propsを作成
+    const dynamodbProps: dynamodb.TableProps = {
+      tableName: "reservation-table",
+      partitionKey: {
+        name: "reservationId",
+        type: dynamodb.AttributeType.STRING,
+      },
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    };
+
+    const apigatewayProps: apigateway.RestApiProps = {
+      restApiName: "reservation-api-gateway",
+      deployOptions: {
+        stageName: "dev",
+      },
+    };
+
+    // ApiGatewayDynamoDBConstructをインスタンス化
+    const construct = new ApiGatewayDynamoDBConstruct(
+      this,
+      "ApiGatewayDynamoDB",
+      {
+        dynamoTableProps: dynamodbProps,
+        apiGatewayProps: apigatewayProps,
+      }
+    );
+
+    // 登録処理のリクエストテンプレート
+    const createRequestTemplate = `{
+            "TableName": "reservation-table",
+            "Item": {
+              "reservationId": {
+                "S": "$context.requestId"
+              },
+              "executeTimestamp": {
+                "S": $input.json('$.executeTimestamp')
+              }
+            }
+          }`;
+
+    // 登録処理の統合レスポンス設定
+    const createIntegrationResponse = [
+      {
+        statusCode: "200",
+        responseTemplates: {
+          "application/json": '{"message": "Item added successfully"}',
         },
       },
-      apiGatewayProps: {
-        restApiName: "reservation-api-gateway", // API Gateway の名前、デフォルトは `reservation-api-gateway`
-        deployOptions: {
-          stageName: "dev", // ステージ名を指定
+      {
+        statusCode: "400",
+        selectionPattern: "4\\d{2}", // 4xxエラーをキャッチ
+        responseTemplates: {
+          "application/json": '{"message": "Bad Request"}',
         },
       },
-      resourcePath: "/v2/dev/reservations/{reservationId}", // リソース名、デフォルトは `reservations`
-      allowPutOperation: true,
-      putOperationConfig: {
-        resourceName: "reservations",
-        requestTemplate: `{
-          "TableName": "reservation-table",
-          "Item": {
-            "reservationId": {
-              "S": "$context.requestId"
-            },
-            "executeTimestamp": {
-              "S": $input.json('$.executeTimestamp')
-            }
-          }
-        }`,
-        integrationResponse: [
-          {
-            statusCode: "200",
-            responseTemplates: {
-              "application/json": '{"message": "Item added successfully"}',
-            },
-          },
-          {
-            statusCode: "400",
-            selectionPattern: "4\\d{2}", // 4xxエラーをキャッチ
-            responseTemplates: {
-              "application/json": '{"message": "Bad Request"}',
-            },
-          },
-        ],
-        methodResponse: [
-          {
-            statusCode: "200",
-            responseModels: {
-              "application/json": apigateway.Model.EMPTY_MODEL,
-            },
-          },
-          {
-            statusCode: "400",
-            responseModels: {
-              "application/json": apigateway.Model.EMPTY_MODEL,
-            },
-          },
-        ],
+    ];
+
+    // 登録処理のメソッドレスポンス設定
+    const createMethodResponse = [
+      {
+        statusCode: "200",
+        responseModels: {
+          "application/json": apigateway.Model.EMPTY_MODEL,
+        },
       },
-      allowScanOperation: true,
-      scanOperationConfig: {
-        resourceName: "reservations",
-        requestTemplate: `{
-          "TableName": "reservation-table"
-        }`,
-        integrationResponse: [
-          {
-            statusCode: "200",
-            responseTemplates: {
-              "application/json": `#set($inputRoot = $input.path('$'))
-                    {
-                      "items": [
-                        #foreach($item in $inputRoot.Items)
-                          {
-                            "reservationId": "$item.reservationId.S",
-                            "executeTimestamp": "$item.executeTimestamp.S"
-                          }#if($foreach.hasNext),#end
-                        #end
-                      ]
-                    }`,
-            },
-          },
-          {
-            statusCode: "400",
-            selectionPattern: "4\\d{2}", // 4xxエラーをキャッチ
-            responseTemplates: {
-              "application/json": '{"message": "Bad Request"}',
-            },
-          },
-        ],
-        methodResponse: [
-          {
-            statusCode: "200",
-            responseModels: {
-              "application/json": apigateway.Model.EMPTY_MODEL,
-            },
-          },
-          {
-            statusCode: "400",
-            responseModels: {
-              "application/json": apigateway.Model.EMPTY_MODEL,
-            },
-          },
-        ],
+      {
+        statusCode: "400",
+        responseModels: {
+          "application/json": apigateway.Model.EMPTY_MODEL,
+        },
       },
-      allowGetOperation: true,
-      getOperationConfig: {
-        resourceName: "{reservationId}",
-        requestTemplate: `{
-          "TableName": "reservation-table",
-          "Key": {
-            "reservationId": {
-              "S": "$input.params('reservationId')"
+    ];
+
+    // apigatewayのルートリソースを取得
+    const rootResource = construct.api.root;
+
+    // リソースを追加
+    const reservationsResource = rootResource
+      .addResource("v1")
+      .addResource("dummy")
+      .addResource("reservations");
+
+    construct.setupMethod(reservationsResource, "create", {
+      requestTemplate: createRequestTemplate,
+      integrationResponse: createIntegrationResponse,
+      methodResponse: createMethodResponse,
+    });
+
+    // 取得処理のリクエストテンプレート
+    const readRequestTemplate = `{
+            "TableName": "reservation-table",
+            "Key": {
+              "reservationId": {
+                "S": "$input.params('reservationId')"
+              }
             }
-          }
-        }`,
-        integrationResponse: [
-          {
-            statusCode: "200",
-            responseTemplates: {
-              "application/json": `#set($inputRoot = $input.path('$'))
-                    {
-                      "reservationId": "$inputRoot.Item.reservationId.S",
-                      "executeTimestamp": "$inputRoot.Item.executeTimestamp.S"
-                    }`,
-            },
-          },
-          {
-            statusCode: "400",
-            selectionPattern: "4\\d{2}", // 4xxエラーをキャッチ
-            responseTemplates: {
-              "application/json": '{"message": "Bad Request"}',
-            },
-          },
-        ],
-        methodResponse: [
-          {
-            statusCode: "200",
-            responseModels: {
-              "application/json": apigateway.Model.EMPTY_MODEL,
-            },
-          },
-          {
-            statusCode: "400",
-            responseModels: {
-              "application/json": apigateway.Model.EMPTY_MODEL,
-            },
-          },
-        ],
+          }`;
+
+    // 取得処理の統合レスポンス設定
+    const readIntegrationResponse = [
+      {
+        statusCode: "200",
+        responseTemplates: {
+          "application/json": `#set($inputRoot = $input.path('$'))
+                {
+                  "reservationId": "$inputRoot.Item.reservationId.S",
+                  "executeTimestamp": "$inputRoot.Item.executeTimestamp.S"
+                }`,
+        },
       },
-      allowUpdateOperation: true,
-      updateOperationConfig: {
-        resourceName: "{reservationId}",
-        requestTemplate: `{
-          "TableName": "reservation-table",
-          "Key": {
-            "reservationId": {
-              "S": "$input.params('reservationId')"
-            }
-          },
-          "UpdateExpression": "SET executeTimestamp = :executeTimestamp",
-          "ExpressionAttributeValues": {
-            ":executeTimestamp": {
-              "S": $input.json('$.executeTimestamp')
-            }
-          }
-        }`,
-        integrationResponse: [
-          {
-            statusCode: "200",
-            responseTemplates: {
-              "application/json": '{"message": "Item updated successfully"}',
-            },
-          },
-          {
-            statusCode: "400",
-            selectionPattern: "4\\d{2}", // 4xxエラーをキャッチ
-            responseTemplates: {
-              "application/json": '{"message": "Bad Request"}',
-            },
-          },
-        ],
-        methodResponse: [
-          {
-            statusCode: "200",
-            responseModels: {
-              "application/json": apigateway.Model.EMPTY_MODEL,
-            },
-          },
-          {
-            statusCode: "400",
-            responseModels: {
-              "application/json": apigateway.Model.EMPTY_MODEL,
-            },
-          },
-        ],
+      {
+        statusCode: "400",
+        selectionPattern: "4\\d{2}", // 4xxエラーをキャッチ
+        responseTemplates: {
+          "application/json": '{"message": "Bad Request"}',
+        },
       },
-      allowDeleteOperation: true,
-      deleteOperationConfig: {
-        resourceName: "{reservationId}",
-        requestTemplate: `{
-          "TableName": "reservation-table",
-          "Key": {
-            "reservationId": {
-              "S": "$input.params('reservationId')"
-            }
-          }
-        }`,
-        integrationResponse: [
-          {
-            statusCode: "200",
-            responseTemplates: {
-              "application/json": '{"message": "Item deleted successfully"}',
-            },
-          },
-          {
-            statusCode: "400",
-            selectionPattern: "4\\d{2}", // 4xxエラーをキャッチ
-            responseTemplates: {
-              "application/json": '{"message": "Bad Request"}',
-            },
-          },
-        ],
-        methodResponse: [
-          {
-            statusCode: "200",
-            responseModels: {
-              "application/json": apigateway.Model.EMPTY_MODEL,
-            },
-          },
-          {
-            statusCode: "400",
-            responseModels: {
-              "application/json": apigateway.Model.EMPTY_MODEL,
-            },
-          },
-        ],
+    ];
+
+    // 取得処理のメソッドレスポンス設定
+    const readMethodResponse = [
+      {
+        statusCode: "200",
+        responseModels: {
+          "application/json": apigateway.Model.EMPTY_MODEL,
+        },
       },
+      {
+        statusCode: "400",
+        responseModels: {
+          "application/json": apigateway.Model.EMPTY_MODEL,
+        },
+      },
+    ];
+
+    // リソースを追加
+    const reservationResource =
+      reservationsResource.addResource("{reservationId}");
+
+    // メソッドを設定
+    construct.setupMethod(reservationResource, "read", {
+      requestTemplate: readRequestTemplate,
+      integrationResponse: readIntegrationResponse,
+      methodResponse: readMethodResponse,
     });
   }
 }
