@@ -121,51 +121,55 @@ export class ApiGatewayDynamoDBConstruct extends Construct {
     this.table.grantReadWriteData(this._apiGatewayRole);
   }
 
-  /**
-   * メソッドを設定する
-   * @param resource API Gatewayのリソース
-   * @param operation 操作の種類
-   * @param methodConfig メソッドの設定プロパティ
-   */
-  public setupMethod(
-    resource: apigateway.IResource,
-    operation: OperationType,
-    methodConfig: IMethodConfig
-  ): void {
-    // resourceがこのクラスから生成されたものであることを確認
-    if (resource.api !== this.api) {
-      throw new Error(
-        "Resource must belong to the current API instance"
-      );
+/**
+ * メソッドを設定する
+ * @param operation 操作の種類
+ * @param methodConfig メソッドの設定プロパティ
+ * @param resourcePath メソッドを追加するリソースパス
+ */
+public setupMethod(
+  resourcePath: string,
+  operation: OperationType,
+  methodConfig: IMethodConfig
+): void {
+  // 指定されたパスのリソースを取得または作成
+  const pathSegments = resourcePath.split('/');
+  let currentResource = this.api.root;
+  pathSegments.forEach(segment => {
+    if (!currentResource.getResource(segment)) {
+      currentResource = currentResource.addResource(segment);
+    } else {
+      currentResource = currentResource.getResource(segment)!;
     }
+  });
 
-    // リソースに紐つくメソッドはすでに存在すればエラー
-    resource.node.children.forEach((child) => {
-      if (child instanceof apigateway.Method) {
-        if (child.httpMethod === methodMap[operation].Method) {
-          throw new Error(
-            `Method ${methodMap[operation].Method} already exists on this resource`
-          );
-        }
+  // リソースに紐つくメソッドはすでに存在すればエラー
+  currentResource.node.children.forEach((child) => {
+    if (child instanceof apigateway.Method) {
+      if (child.httpMethod === methodMap[operation].Method) {
+        throw new Error(
+          `Method ${methodMap[operation].Method} already exists on this resource`
+        );
       }
-    });
+    }
+  });
 
-    const { Method, Action } = methodMap[operation];
+  const { Method, Action } = methodMap[operation];
 
-    const createIntegration = new apigateway.AwsIntegration({
-      service: "dynamodb",
-      action: Action,
-      options: {
-        credentialsRole: this._apiGatewayRole,
-        requestTemplates: {
-          "application/json": methodConfig.requestTemplate,
-        },
-        integrationResponses: methodConfig.integrationResponse,
+  const createIntegration = new apigateway.AwsIntegration({
+    service: "dynamodb",
+    action: Action,
+    options: {
+      credentialsRole: this._apiGatewayRole,
+      requestTemplates: {
+        "application/json": methodConfig.requestTemplate,
       },
-    });
+      integrationResponses: methodConfig.integrationResponse,
+    },
+  });
 
-    resource.addMethod(Method, createIntegration, {
-      methodResponses: methodConfig.methodResponse,
-    });
-  }
+  currentResource.addMethod(Method, createIntegration, {
+    methodResponses: methodConfig.methodResponse,
+  });
+}
 }

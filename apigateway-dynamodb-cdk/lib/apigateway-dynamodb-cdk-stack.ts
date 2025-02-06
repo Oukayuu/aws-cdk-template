@@ -91,16 +91,8 @@ export class ApigatewayDynamodbCdkStack extends cdk.Stack {
       },
     ];
 
-    // apigatewayのルートリソースを取得
-    const rootResource = construct.api.root;
-
-    // リソースを追加
-    const reservationsResource = rootResource
-      .addResource("v1")
-      .addResource("dummy")
-      .addResource("reservations");
-
-    construct.setupMethod(reservationsResource, "create", {
+    // apigatewayにメソッドを追加
+    construct.setupMethod("v1/dummy/reservations", "create", {
       requestTemplate: createRequestTemplate,
       integrationResponse: createIntegrationResponse,
       methodResponse: createMethodResponse,
@@ -153,12 +145,8 @@ export class ApigatewayDynamodbCdkStack extends cdk.Stack {
       },
     ];
 
-    // リソースを追加
-    const reservationResource =
-      reservationsResource.addResource("{reservationId}");
-
-    // メソッドを設定
-    construct.setupMethod(reservationResource, "read", {
+    // メソッドを追加
+    construct.setupMethod("v1/dummy/reservations/{reservationId}", "read", {
       requestTemplate: readRequestTemplate,
       integrationResponse: readIntegrationResponse,
       methodResponse: readMethodResponse,
