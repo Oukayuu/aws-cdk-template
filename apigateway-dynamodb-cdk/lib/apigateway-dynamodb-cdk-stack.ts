@@ -46,6 +46,7 @@ export class ApigatewayDynamodbCdkStack extends cdk.Stack {
     );
 
     // 登録処理のリクエストテンプレート
+    // requestIdをreservationIdに設定
     const createRequestTemplate = `{
             "TableName": "reservation-table",
             "Item": {
@@ -59,6 +60,7 @@ export class ApigatewayDynamodbCdkStack extends cdk.Stack {
           }`;
 
     // 登録処理の統合レスポンス設定
+    // reservationIdを返却するように設定
     const createIntegrationResponse = [
       {
         statusCode: "200",

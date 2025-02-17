@@ -163,6 +163,7 @@ export class ApiGatewayDynamoDBConstruct extends Construct {
 
     const { Method, Action } = methodMap[operation];
 
+    // 統合を作成
     const createIntegration = new apigateway.AwsIntegration({
       service: "dynamodb",
       action: Action,
@@ -176,6 +177,7 @@ export class ApiGatewayDynamoDBConstruct extends Construct {
       },
     });
 
+    // メソッドを追加
     currentResource.addMethod(
       Method,
       createIntegration,
