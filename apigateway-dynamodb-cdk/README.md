@@ -8,10 +8,10 @@
 
 `IApiGatewayDynamodbProps`は、`ApiGatewayDynamoDBConstruct`で使用するプロパティのインターフェースで、以下のプロパティを含めます。
 
-| プロパティ名     | 　型                                                                                                                | 必須     | 説明                                  |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------- |
-| dynamoTableProps | [dynamodb.TableProps](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_dynamodb.TableProps.html)         | required | DynamoDB テーブルを設定するプロパティ |
-| apiGatewayProps  | [apigateway.RestApiProps](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_apigateway.RestApiProps.html) | required | API Gateway を設定するプロパティ      |
+| プロパティ名     | 　型                                                                                                                | 必須 | 説明                                  |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------- | ---- | ------------------------------------- |
+| dynamoTableProps | [dynamodb.TableProps](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_dynamodb.TableProps.html)         | Yes  | DynamoDB テーブルを設定するプロパティ |
+| apiGatewayProps  | [apigateway.RestApiProps](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_apigateway.RestApiProps.html) | Yes  | API Gateway を設定するプロパティ      |
 
 ## Construct Method
 
@@ -139,29 +139,44 @@ const construct = new ApiGatewayDynamoDBConstruct(this, "ApiGatewayDynamoDB", {
 <br>
 
 5. setupMethod()を呼び出し、リソースとメソッドを作成する（必要に応じて、複数のメソッドを追加可能）
-   ※VTL の書き方は[AWS 開発者ガイド](https://docs.aws.amazon.com/ja_jp/apigateway/latest/developerguide/api-gateway-mapping-template-reference.html?icmpid=docs_apigateway_console)を参考
-   　例：登録操作を追加する
+   以下の設定を引数として、setipMethod()に渡すため、呼び出す前に生成する必要があります。
+   - 統合リクエスト
+     API Gateway がバックエンド（Lambda、HTTP、AWS Service など）へリクエストをどのように送信するかを定義します。
+     本 CDK では、VTL マッピングテンプレートを使用して DynamoDB へリクエストを送信します。
+     （VTL マッピングテンプレートの書き方は[AWS 開発者ガイド](https://docs.aws.amazon.com/ja_jp/apigateway/latest/developerguide/api-gateway-mapping-template-reference.html?icmpid=docs_apigateway_console)を参照してください。）
+   - 統合レスポンス
+     DynamoDB からのレスポンスを API Gateway でどのように処理するかを定義します。
+   - メソッドリクエスト
+     クライアントからのリクエストをどのように受け入れるかを定義します。モデル（スキーマ定義）の追加や認証方法を設定可能です。
+     （スキーマ定義の書き方は[REST API のデータモデル](https://docs.aws.amazon.com/ja_jp/apigateway/latest/developerguide/models-mappings-models.html)を参照してください。）
+   - メソッドレスポンス
+     API Gateway からクライアントに返すレスポンスの定義します。モデル（スキーマ定義）の追加は可能です。
+     ※上記 4 つの機能を理解するために、[イラストで理解する API Gateway](https://zenn.dev/fdnsy/articles/86897abce0bbf5)の記事を参考にしてください。
+     <br>
+     例：登録操作を追加する
 
 ```typescript
 // 登録処理のリクエストテンプレート
+// requestIdをreservationIdに設定
 const createRequestTemplate = `{
-          "TableName": "reservation-table",
-          "Item": {
-            "reservationId": {
-              "S": "$context.requestId"
-            },
-            "executeTimestamp": {
-              "S": $input.json('$.executeTimestamp')
+            "TableName": "reservation-table",
+            "Item": {
+              "reservationId": {
+                "S": "$context.requestId"
+              },
+              "executeTimestamp": {
+                "S": $input.json('$.executeTimestamp')
+              }
             }
-          }
-        }`;
+          }`;
 
 // 登録処理の統合レスポンス設定
+// reservationIdを返却するように設定
 const createIntegrationResponse = [
   {
     statusCode: "200",
     responseTemplates: {
-      "application/json": '{"message": "Item added successfully"}',
+      "application/json": '{"reservationId": "$context.requestId"}',
     },
   },
   {
@@ -173,27 +188,76 @@ const createIntegrationResponse = [
   },
 ];
 
+// 登録処理のリクエストボディモデルを追加
+const createRequestBodyModel = new apigateway.Model(
+  this,
+  "CreateRequestBodyModel",
+  {
+    modelName: "CreateRequestBodyModel",
+    description: "Request body for create reservation",
+    restApi: construct.api,
+    contentType: "application/json",
+    schema: {
+      type: apigateway.JsonSchemaType.OBJECT,
+      properties: {
+        executeTimestamp: {
+          type: apigateway.JsonSchemaType.STRING,
+        },
+      },
+      required: ["executeTimestamp"],
+    },
+  }
+);
+
+// 登録処理のレスポンスボディモデルを追加
+const createResponseBodyModel = new apigateway.Model(
+  this,
+  "CreateResponseBodyModel",
+  {
+    modelName: "CreateResponseBodyModel",
+    description: "Response body for create reservation",
+    restApi: construct.api,
+    contentType: "application/json",
+    schema: {
+      type: apigateway.JsonSchemaType.OBJECT,
+      properties: {
+        reservationId: {
+          type: apigateway.JsonSchemaType.STRING,
+        },
+      },
+      required: ["reservationId"],
+    },
+  }
+);
+
 // 登録処理のメソッドレスポンス設定
 const createMethodResponse = [
   {
     statusCode: "200",
     responseModels: {
-      "application/json": apigateway.Model.EMPTY_MODEL,
+      "application/json": createResponseBodyModel,
     },
   },
   {
     statusCode: "400",
     responseModels: {
-      "application/json": apigateway.Model.EMPTY_MODEL,
+      "application/json": apigateway.Model.EMPTY_MODEL, // 4xxエラーレスポンスは空モデル（自由に設定可能）
     },
   },
 ];
 
 // apigatewayにメソッドを追加
 construct.setupMethod("v1/dummy/reservations", "create", {
-  requestTemplate: createRequestTemplate,
-  integrationResponse: createIntegrationResponse,
-  methodResponse: createMethodResponse,
+  integrationConfig: {
+    requestTemplate: createRequestTemplate,
+    integrationResponse: createIntegrationResponse,
+  },
+  methodOptions: {
+    requestModels: {
+      "application/json": createRequestBodyModel,
+    },
+    methodResponses: createMethodResponse,
+  },
 });
 ```
 
@@ -209,10 +273,22 @@ construct.setupMethod("v1/dummy/reservations", "create", {
 
 ## Properties
 
-| プロパティ名        | 型                                                                                                                     | 必須     | 説明                         |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------- |
-| requestTemplate     | 　　　 string                                                                                                          | required | リクエストテンプレート       |
-| integrationResponse | [integrationResponse](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_apigateway.IntegrationResponse.html) | required | インテグレーションレスポンス |
-| methodResponse      | [methodResponse](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_apigateway.MethodResponse.html)           | required | メソッドレスポンス           |
+| プロパティ名      | 型                                                                                                         | 必須 | 説明                                                       |
+| ----------------- | ---------------------------------------------------------------------------------------------------------- | ---- | ---------------------------------------------------------- |
+| integrationConfig | [IIntegrationConfig](#interface-IIntegrationConfig)                                                        | Yes  | イングレーション設定（統合リクエストと統合レスポンス）     |
+| methodOptions 　  | [MethodOptions](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_apigateway.MethodOptions.html) | No   | メソッド設定（メソッドリクエストとメソッドレスポンスなど） |
 
-メソッド設定用のインターフェース
+リソースメソッド設定用のインターフェース
+
+---
+
+# interface IIntegrationConfig
+
+## Properties
+
+| プロパティ名        | 型                                                                                                                     | 必須 | 説明                         |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---- | ---------------------------- |
+| requestTemplate     | 　　　 string                                                                                                          | Yes  | リクエストテンプレート       |
+| integrationResponse | [integrationResponse](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_apigateway.IntegrationResponse.html) | Yes  | インテグレーションレスポンス |
+
+統合メソッド設定用のインターフェース

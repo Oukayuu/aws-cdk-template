@@ -18,9 +18,16 @@ export interface IApiGatewayDynamodbProps extends cdk.StackProps {
  * メソッドconfigのインターフェース
  */
 export interface IMethodConfig {
+  integrationConfig: IIntegrationConfig;
+  methodOptions?: apigateway.MethodOptions;
+}
+
+/**
+ * 統合configのインターフェース
+ */
+export interface IIntegrationConfig {
   requestTemplate: string;
-  integrationResponse?: apigateway.IntegrationResponse[];
-  methodResponse?: apigateway.MethodResponse[];
+  integrationResponse: apigateway.IntegrationResponse[];
 }
 
 /**
@@ -121,55 +128,60 @@ export class ApiGatewayDynamoDBConstruct extends Construct {
     this.table.grantReadWriteData(this._apiGatewayRole);
   }
 
-/**
- * メソッドを設定する
- * @param operation 操作の種類
- * @param methodConfig メソッドの設定プロパティ
- * @param resourcePath メソッドを追加するリソースパス
- */
-public setupMethod(
-  resourcePath: string,
-  operation: OperationType,
-  methodConfig: IMethodConfig
-): void {
-  // 指定されたパスのリソースを取得または作成
-  const pathSegments = resourcePath.split('/');
-  let currentResource = this.api.root;
-  pathSegments.forEach(segment => {
-    if (!currentResource.getResource(segment)) {
-      currentResource = currentResource.addResource(segment);
-    } else {
-      currentResource = currentResource.getResource(segment)!;
-    }
-  });
-
-  // リソースに紐つくメソッドはすでに存在すればエラー
-  currentResource.node.children.forEach((child) => {
-    if (child instanceof apigateway.Method) {
-      if (child.httpMethod === methodMap[operation].Method) {
-        throw new Error(
-          `Method ${methodMap[operation].Method} already exists on this resource`
-        );
+  /**
+   * メソッドを設定する
+   * @param operation 操作の種類
+   * @param methodConfig メソッドの設定プロパティ
+   * @param resourcePath メソッドを追加するリソースパス
+   */
+  public setupMethod(
+    resourcePath: string,
+    operation: OperationType,
+    methodConfig: IMethodConfig
+  ): void {
+    // 指定されたパスのリソースを取得または作成
+    const pathSegments = resourcePath.split("/");
+    let currentResource = this.api.root;
+    pathSegments.forEach((segment) => {
+      if (!currentResource.getResource(segment)) {
+        currentResource = currentResource.addResource(segment);
+      } else {
+        currentResource = currentResource.getResource(segment)!;
       }
-    }
-  });
+    });
 
-  const { Method, Action } = methodMap[operation];
+    // リソースに紐つくメソッドはすでに存在すればエラー
+    currentResource.node.children.forEach((child) => {
+      if (child instanceof apigateway.Method) {
+        if (child.httpMethod === methodMap[operation].Method) {
+          throw new Error(
+            `Method ${methodMap[operation].Method} already exists on this resource`
+          );
+        }
+      }
+    });
 
-  const createIntegration = new apigateway.AwsIntegration({
-    service: "dynamodb",
-    action: Action,
-    options: {
-      credentialsRole: this._apiGatewayRole,
-      requestTemplates: {
-        "application/json": methodConfig.requestTemplate,
+    const { Method, Action } = methodMap[operation];
+
+    // 統合を作成
+    const createIntegration = new apigateway.AwsIntegration({
+      service: "dynamodb",
+      action: Action,
+      options: {
+        credentialsRole: this._apiGatewayRole,
+        requestTemplates: {
+          "application/json": methodConfig.integrationConfig.requestTemplate,
+        },
+        integrationResponses:
+          methodConfig.integrationConfig.integrationResponse,
       },
-      integrationResponses: methodConfig.integrationResponse,
-    },
-  });
+    });
 
-  currentResource.addMethod(Method, createIntegration, {
-    methodResponses: methodConfig.methodResponse,
-  });
-}
+    // メソッドを追加
+    currentResource.addMethod(
+      Method,
+      createIntegration,
+      methodConfig.methodOptions
+    );
+  }
 }
